@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GA Collage</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GA Collage">
+<meta name="theme-color" content="#17120f">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="app">
+  <!-- CREATE -->
+  <section id="view-create" class="view">
+    <header class="bar">
+      <button id="btn-new" class="link">New</button>
+      <input id="look-title" class="title-input" placeholder="Untitled look" enterkeyhint="done" autocomplete="off">
+      <button id="btn-export" class="link strong">Export</button>
+    </header>
+    <div id="stage">
+      <canvas id="pin" width="1000" height="1500"></canvas>
+      <div id="empty" class="empty hidden">
+        <div class="empty-mark">GA</div>
+        <p>Start a look by adding your first item.</p>
+        <button id="empty-add" class="btn primary">Add item</button>
+      </div>
+    </div>
+    <nav id="tools" class="tools"></nav>
+  </section>
+
+  <!-- LIBRARY -->
+  <section id="view-library" class="view hidden">
+    <header class="bar">
+      <span></span>
+      <h1>Library</h1>
+      <button id="btn-export-all" class="link">Export all</button>
+    </header>
+    <div id="library" class="scroll"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings" class="view hidden">
+    <header class="bar"><span></span><h1>Settings</h1><span></span></header>
+    <div id="settings" class="scroll"></div>
+  </section>
+
+  <nav id="tabs" class="tabs">
+    <button data-tab="create" class="on">
+      <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M12 9v6M9 12h6"/></svg><span>Create</span>
+    </button>
+    <button data-tab="library">
+      <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="10" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="6" rx="1.5"/><rect x="13.5" y="12.5" width="7" height="8" rx="1.5"/><rect x="3.5" y="16.5" width="7" height="4" rx="1.5"/></svg><span>Library</span>
+    </button>
+    <button data-tab="settings">
+      <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span>Settings</span>
+    </button>
+  </nav>
+</div>
+
+<!-- Bottom sheet -->
+<div id="sheet-wrap" class="sheet-wrap hidden">
+  <div id="sheet-dim" class="dim"></div>
+  <div id="sheet" class="sheet">
+    <div class="grab"></div>
+    <header class="sheet-head">
+      <button id="sheet-left" class="link"></button>
+      <h2 id="sheet-title"></h2>
+      <button id="sheet-right" class="link strong"></button>
+    </header>
+    <div id="sheet-body" class="sheet-body"></div>
+  </div>
+</div>
+
+<!-- Cutout touch-up -->
+<div id="touchup" class="touchup hidden">
+  <header class="bar">
+    <button id="tu-cancel" class="link">Cancel</button>
+    <h1>Touch up</h1>
+    <button id="tu-done" class="link strong">Done</button>
+  </header>
+  <canvas id="tu-canvas"></canvas>
+  <p class="tu-hint">Paint with one finger. Zoom and move with two.</p>
+  <div class="tu-row">
+    <div class="seg">
+      <button id="tu-erase" class="on">Erase</button>
+      <button id="tu-restore">Bring back</button>
+    </div>
+    <button id="tu-undo" class="pill">Undo</button>
+  </div>
+  <div class="tu-row">
+    <label class="tu-size">Brush <input id="tu-size" type="range" min="8" max="110" value="34"></label>
+  </div>
+  <div class="tu-row">
+    <button id="tu-tighten" class="pill">Trim edge</button>
+    <button id="tu-backdrop" class="pill">Backdrop</button>
+    <select id="tu-redo" class="pill">
+      <option value="">Start over…</option>
+      <option value="auto">Automatic cutout</option>
+      <option value="18">Remove plain background (gentle)</option>
+      <option value="28">Remove plain background</option>
+      <option value="46">Remove plain background (strong)</option>
+      <option value="none">Keep the whole photo</option>
+    </select>
+  </div>
+</div>
+
+<div id="busy" class="busy hidden">
+  <div class="busy-card">
+    <div class="spinner"></div>
+    <div id="busy-text">Working…</div>
+    <div class="progress"><i id="busy-bar"></i></div>
+  </div>
+</div>
+<div id="toast" class="toast hidden"></div>
+<input id="file-photos" type="file" accept="image/*" multiple hidden>
+<input id="file-bg" type="file" accept="image/*" hidden>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
