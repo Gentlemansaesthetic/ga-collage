@@ -187,7 +187,7 @@ def main():
     usable = [c for c in catalog.values() if not c.get('gone')]
     want = cfg.get('outfits_per_day', 10)
     existing = load_json(os.path.join(data, 'daily', f'{today.isoformat()}.json'), None)
-    if a.keep_today and existing and len(existing.get('outfits', [])) >= want and all(i in catalog for o in existing['outfits'] for i in o['items']):
+    if a.keep_today and existing and len(existing.get('outfits', [])) >= want and all(i in catalog and 'gone' not in catalog[i] for o in existing['outfits'] for i in o['items']):
         log("today's outfits already exist; keeping them")
         save_json(cat_path, {'items': catalog})
         save_json(os.path.join(data, 'pool', 'rejects.json'), rejects)

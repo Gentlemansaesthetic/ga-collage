@@ -28,6 +28,8 @@ jobs:
     timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Get the current product pool
         env:
@@ -53,7 +55,8 @@ jobs:
           FEED_4: ${{ secrets.FEED_4 }}
         run: |
           KEEP=""
-          if [ "${{ github.event_name }}" = "push" ]; then KEEP="--keep-today"; fi
+          # a new shop or hand-added item only tops up the pool; changed robot rules restyle the day
+          if [ "${{ github.event_name }}" = "push" ] && ! git diff --name-only HEAD~1 HEAD | grep -q '^robot/.*\.py$'; then KEEP="--keep-today"; fi
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.restyle }}" != "true" ]; then KEEP="--keep-today"; fi
           python robot/run.py --data data $KEEP
 
