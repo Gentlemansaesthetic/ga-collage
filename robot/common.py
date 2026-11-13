@@ -10,10 +10,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Same rules as guessCategory() in js/layouts.js - keep the two in step.
 WORDS = [
     ('fragrance', r'parfum|perfume|cologne|eau de|fragrance|toilette|\bedp\b|\bedt\b'),
-    ('watch', r'\bwatch|chronograph|timepiece|\bautomatic \d+mm'),
+    ('watch', r'\bwatch(?!\s*(?:cap|coat|case|roll|box|strap|band|winder|hat|pouch))|chronograph|timepiece|\bautomatic \d+mm'),
     ('eyewear', r'sunglass|glasses|eyewear|aviator|wayfarer'),
     ('shoes', r'sneaker|trainer|\bshoes?\b|\bboots?\b|loafer|derby|oxford shoe|moccasin|espadrille|slip-on|chelsea'),
-    ('small', r'wallet|card ?holder|cardholder|card case|\bbelt\b|\bbag\b|briefcase|scarf|\btie\b|\bcap\b|\bhat\b|beanie|gloves|bracelet|\bring\b|necklace|cufflink'),
+    ('small', r'watch (?:case|roll|box|pouch)|wallet|card ?holder|cardholder|card case|\bbelt\b|\bbag\b|briefcase|scarf|\btie\b|\bcap\b|\bhat\b|beanie|gloves|bracelet|\bring\b|necklace|cufflink'),
     ('pants', r'trouser|\bpants?\b|\bjeans?\b|chino|\bshorts\b|slacks|denim'),
     ('outer', r'jacket|\bcoat\b|\bvest\b|gilet|blazer|bomber|overshirt|parka|trench|shearling|puffer|blouson|peacoat|windbreaker|harrington'),
     ('base', r't-shirt|\btee\b|tank|undershirt|\bvest top'),

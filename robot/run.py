@@ -13,7 +13,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from common import ACCESSORY, ROOT, load_json, log, now, save_json  # noqa: E402
+from common import ACCESSORY, ROOT, guess_category, load_json, log, now, save_json  # noqa: E402
 import collect  # noqa: E402
 import cutout  # noqa: E402
 import stylist  # noqa: E402
@@ -69,7 +69,7 @@ def main():
             listed.add(p['id'])
             if p['id'] in catalog:
                 c = catalog[p['id']]
-                c.update({k: p[k] for k in ('name', 'brand', 'price', 'currency', 'url', 'buy_url')})
+                c.update({k: p[k] for k in ('name', 'brand', 'category', 'price', 'currency', 'url', 'buy_url')})
                 c['seen'] = t
                 c.pop('gone', None)
             else:
@@ -77,6 +77,18 @@ def main():
         for c in catalog.values():  # products the shop no longer lists are sold out or removed
             if c.get('source') == name and c['id'] not in listed and not c.get('manual'):
                 c.setdefault('gone', t)
+
+    # rules may have changed since an item was added: re-check names
+    exclude = collect.DEFAULT_EXCLUDE + cfg.get('exclude_words', [])
+    for c in catalog.values():
+        if c.get('manual'):
+            continue
+        if collect.excluded(c['name'], exclude):
+            c['gone'] = 0
+            continue
+        cat = guess_category(c['name'])
+        if cat != 'other':
+            c['category'] = cat
 
     # 2. cut out new products, filling the categories the pool needs most
     counts = {}
@@ -206,8 +218,8 @@ def main():
             status['notes'].append('Not enough ' + ', '.join(info['missing']) + ' yet to make outfits. Add shops that sell them.')
         else:
             status['notes'].append('Fewer outfits than asked: the pool is still small, so combinations ran out.')
-    if not any(c in pool_counts for c in ACCESSORY):
-        status['notes'].append('No watches, fragrance or accessories yet. Add a few by pasting links in the app; they are reused in many outfits.')
+    if 'watch' not in pool_counts:
+        status['notes'].append('No watches yet: the shops on the list do not sell them. Add a few by hand in the app (paste a link); they are reused in many outfits.')
 
     save_json(cat_path, {'items': catalog})
     save_json(os.path.join(data, 'pool', 'rejects.json'), rejects)

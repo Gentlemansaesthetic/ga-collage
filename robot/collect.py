@@ -12,7 +12,22 @@ from common import guess_category, log, make_id
 
 UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15'
 HEADERS = {'user-agent': UA, 'accept': 'application/json,text/html;q=0.9,*/*;q=0.8', 'accept-language': 'en-US,en;q=0.9'}
-DEFAULT_EXCLUDE = ['women', 'womens', "women's", 'woman', 'ladies', 'girls', 'boys', 'kids', 'baby', 'gift card', 'gift-card', 'sample', 'swatch', 'repair', 'monogram service']
+DEFAULT_EXCLUDE = ['women', 'womens', "women's", 'woman', 'ladies', 'girls', 'boys', 'kids', 'baby', 'gift card', 'gift-card', 'sample', 'swatch', 'repair', 'monogram service',
+                   'set', 'pyjama', 'pyjamas', 'pajama', 'pajamas', 'robe', 'dressing gown', 'sock', 'socks', 'underwear', 'boxer', 'boxers', 'briefs', 'trunks', 'swim', 'swimwear',
+                   'towel', 'candle', 'refill', 'spurs', 'strap', 'straps', 'laces', 'shoe tree', 'shoe trees', 'polish', 'brush', 'care kit', 'lint', 'hanger', 'umbrella', 'keyring', 'key ring',
+                   'mug', 'book', 'poster', 'print', 'blanket', 'pillow', 'cushion', 'notebook', 'pen', 'lens', 'case only', 'replacement']
+
+
+def clean_brand(vendor, shop):
+    """Shops often put their own name in odd forms ("Drakes - UK/ROW", "PrivateWhite V.C"). Use the shop's name then."""
+    if shop.get('brand'):
+        return shop['brand']
+    v = (vendor or '').strip()
+    a = re.sub(r'[^a-z0-9]', '', v.lower())
+    b = re.sub(r'[^a-z0-9]', '', shop['name'].lower())
+    if not a or a.startswith(b[:6]) or b.startswith(a[:6]):
+        return shop['name']
+    return v
 
 
 def http_get(url, timeout=30, accept=None):
@@ -24,7 +39,7 @@ def http_get(url, timeout=30, accept=None):
     return r
 
 
-def _excluded(text, words):
+def excluded(text, words):
     t = ' ' + text.lower() + ' '
     return any(re.search(r'(?<![a-z])' + re.escape(w) + r'(?![a-z])', t) for w in words)
 
@@ -61,9 +76,9 @@ def shopify(shop, cfg):
             if isinstance(tags, str):
                 tags = [t.strip() for t in tags.split(',')]
             text = ' '.join([p.get('title', ''), p.get('product_type', ''), ' '.join(tags)])
-            if _excluded(text, exclude):
+            if excluded(text, exclude):
                 continue
-            if shop.get('include_words') and not _excluded(text, shop['include_words']):
+            if shop.get('include_words') and not excluded(text, shop['include_words']):
                 continue
             variants = p.get('variants') or []
             avail = [v for v in variants if v.get('available', True)]
@@ -86,7 +101,7 @@ def shopify(shop, cfg):
                 'id': make_id(base, str(p.get('handle'))),
                 'source': shop['name'],
                 'name': p.get('title', '').strip(),
-                'brand': shop.get('brand') or (p.get('vendor') or '').strip() or shop['name'],
+                'brand': clean_brand(p.get('vendor'), shop),
                 'category': cat,
                 'price': _fmt_price(price),
                 'currency': shop.get('currency', 'USD'),
@@ -163,7 +178,7 @@ def feed(src, cfg):
         if avail and ('out' in avail or avail in ('false', '0', 'no')):
             continue
         ptype = _pick(row, 'product_type', 'google_product_category', 'category', 'merchant_category')
-        if _excluded(' '.join([name, ptype]), exclude):
+        if excluded(' '.join([name, ptype]), exclude):
             continue
         if brands and brand.lower() not in brands:
             continue

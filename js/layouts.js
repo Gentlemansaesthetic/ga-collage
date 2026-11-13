@@ -17,10 +17,10 @@ export const CATEGORIES = [
 
 const WORDS = [
   ['fragrance', /parfum|perfume|cologne|eau de|fragrance|toilette|\bedp\b|\bedt\b/i],
-  ['watch', /\bwatch|chronograph|timepiece|\bautomatic \d+mm/i],
+  ['watch', /\bwatch(?!\s*(?:cap|coat|case|roll|box|strap|band|winder|hat|pouch))|chronograph|timepiece|\bautomatic \d+mm/i],
   ['eyewear', /sunglass|glasses|eyewear|aviator|wayfarer/i],
   ['shoes', /sneaker|trainer|\bshoes?\b|\bboots?\b|loafer|derby|oxford shoe|moccasin|espadrille|slip-on|chelsea/i],
-  ['small', /wallet|card ?holder|cardholder|card case|\bbelt\b|\bbag\b|briefcase|scarf|\btie\b|\bcap\b|\bhat\b|beanie|gloves|bracelet|\bring\b|necklace|cufflink/i],
+  ['small', /watch (?:case|roll|box|pouch)|wallet|card ?holder|cardholder|card case|\bbelt\b|\bbag\b|briefcase|scarf|\btie\b|\bcap\b|\bhat\b|beanie|gloves|bracelet|\bring\b|necklace|cufflink/i],
   ['pants', /trouser|\bpants?\b|\bjeans?\b|chino|\bshorts\b|slacks|denim/i],
   ['outer', /jacket|\bcoat\b|\bvest\b|gilet|blazer|bomber|overshirt|parka|trench|shearling|puffer|blouson|peacoat|windbreaker|harrington/i],
   ['base', /t-shirt|\btee\b|tank|undershirt|\bvest top/i],

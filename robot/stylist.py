@@ -12,6 +12,7 @@ from common import ACCESSORY, UPPER
 
 TEMPLATE_COUNT = 6
 WINTER_WORDS = re.compile(r'wool|cashmere|shearling|suede|flannel|knit|coat|boot|corduroy|cord\b|tweed|merino|alpaca|mohair|turtleneck|roll ?neck|overcoat|leather|quilted|down', re.I)
+CASUAL_WORDS = re.compile(r'hoodie|hooded|sweatpant|sweatshirt|jogger|lounge|track ?(?:pant|suit|top)|cargo|hiking|camo|graphic|logo|fleece|puffer|featherbed|down vest|board ?short|beanie|bucket hat|trucker|sneaker', re.I)
 SUMMER_WORDS = re.compile(r'linen|shorts|tank|sandal|seersucker|short[- ]sleeve|\btee\b|t-shirt|espadrille|swim|cotton-silk|camp collar|polo', re.I)
 
 
@@ -78,6 +79,8 @@ def score(outfit, ctx):
             s += 0.4
     elif sea == 'summer':
         s += 0.2 * min(3, len(SUMMER_WORDS.findall(text))) - 0.6 * min(2, len(re.findall(r'coat|shearling|down|puffer|flannel|tweed', text, re.I)))
+    # quiet luxury: tailored and refined beats sporty
+    s -= 0.5 * min(3, len(CASUAL_WORDS.findall(text)))
     # variety and freshness
     brands = {i.get('brand', '').lower() for i in items}
     if len(brands) >= max(2, len(items) // 2):
