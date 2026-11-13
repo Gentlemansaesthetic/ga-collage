@@ -318,6 +318,8 @@ Testing on the real iPhone is the most valuable next step: one pin end to end, w
 - The test output shows `404` console lines during the GitHub backup test – expected, not a bug.
 - **Today: Swap/hidden changes aren't saved** if the app is closed before Keep – the card returns to the robot's original outfit next time.
 - **Kept outfits' touch-up can only erase**, not bring back, because the robot sends only the cut-out (not the original photo).
+- **Photos of trousers worn by a model (legs and hands, no face) can slip through** – seen once in the third real run. The owner can use Swap → "Don't use this piece again". Possible fix: reject lower-body photos with skin-coloured hands at the waist, or prefer the shop's 2nd/3rd photo for trousers.
+- **Items cut before the shape check** (folded trousers) stay in the pool until they sell out or are trimmed; the stylist only penalises them.
 - **Robot colour names are approximate** (taken from the main colour of the cut-out; patterns and two-tone items get one name).
 - **Robot face check needs OpenCV 4** (`opencv-python-headless<5`); OpenCV 5 dropped the face files, and the robot silently skips the check if they're missing.
 - **Shop currencies** in `robot/sources.json` are guesses; prices may show the wrong symbol until corrected.
