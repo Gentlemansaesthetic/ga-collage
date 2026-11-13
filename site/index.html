@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gentleman's Aesthetic · Shop the look</title>
+<meta name="description" content="Quiet luxury outfits from Gentleman's Aesthetic, with links to every piece.">
+<link rel="icon" href="../assets/icon-192.png">
+<style>
+  :root { --bg: #f6f1ea; --ink: #1d1712; --muted: #7d6f62; --line: #e3d9cc; --accent: #6b5443; --card: #fffdf9;
+    --serif: "Didot", "Bodoni 72", "Bodoni MT", "Playfair Display", Georgia, serif; --sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 var(--sans); }
+  a { color: inherit; }
+  header { text-align: center; padding: 34px 16px 18px; border-bottom: 1px solid var(--line); }
+  header a { text-decoration: none; }
+  .mark { font: 400 40px/1 var(--serif); letter-spacing: 0.12em; }
+  .name { font: 400 13px/1 var(--sans); letter-spacing: 0.32em; text-transform: uppercase; color: var(--muted); margin-top: 10px; }
+  main { max-width: 1040px; margin: 0 auto; padding: 26px 16px 50px; }
+  h1 { font: 400 30px/1.2 var(--serif); margin: 0 0 6px; letter-spacing: 0.02em; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 26px 20px; }
+  .tile { text-decoration: none; display: block; }
+  .tile img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; display: block; border-radius: 4px; background: #e9e1d6; box-shadow: 0 10px 26px rgba(40, 25, 10, 0.16); }
+  .tile b { display: block; font: 400 19px/1.3 var(--serif); margin-top: 12px; }
+  .tile small { color: var(--muted); font-size: 13px; }
+  .look { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+  .look > img { width: 100%; border-radius: 4px; box-shadow: 0 14px 34px rgba(40, 25, 10, 0.18); position: sticky; top: 20px; }
+  .back { display: inline-block; color: var(--muted); text-decoration: none; font-size: 14px; margin-bottom: 18px; }
+  .item { display: grid; grid-template-columns: 96px 1fr; gap: 16px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .item img { width: 96px; height: 96px; object-fit: contain; background: var(--card); border-radius: 4px; padding: 6px; }
+  .item .brand { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+  .item .what { font: 400 19px/1.3 var(--serif); }
+  .item .price { color: var(--muted); font-size: 14px; }
+  .shop { display: inline-block; margin-top: 8px; padding: 8px 18px; background: var(--ink); color: var(--bg); text-decoration: none; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; border-radius: 2px; }
+  .note { color: var(--muted); font-size: 12.5px; margin-top: 22px; }
+  footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 26px 16px 40px; border-top: 1px solid var(--line); }
+  .empty { text-align: center; color: var(--muted); padding: 60px 10px; }
+  @media (max-width: 720px) { .look { grid-template-columns: 1fr; gap: 22px; } .look > img { position: static; } h1 { font-size: 26px; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; } .tile b { font-size: 16px; } }
+</style>
+</head>
+<body>
+<header><a href="#"><div class="mark">GA</div><div class="name">Gentleman’s Aesthetic</div></a></header>
+<main id="main"><p class="empty">Loading…</p></main>
+<footer>Some links on this page are affiliate links. If you buy through them, Gentleman’s Aesthetic may earn a commission at no extra cost to you.</footer>
+<script>
+const main = document.getElementById('main');
+const BASE = '../looks/';
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safeUrl = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
+let index = null;
+async function json(path) { const r = await fetch(path + '?t=' + Date.now()); if (!r.ok) throw new Error(r.status); return r.json(); }
+async function show() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  window.scrollTo(0, 0);
+  try {
+    if (!id) {
+      index = index || await json(BASE + 'index.json').catch(() => []);
+      document.title = "Gentleman's Aesthetic · Shop the look";
+      main.innerHTML = '<h1>Shop the look</h1><p class="sub">Quiet luxury outfits, with a link to every piece.</p>' +
+        (index.length ? '<div class="grid">' + index.map((l) => `<a class="tile" href="#${encodeURIComponent(l.id)}"><img loading="lazy" alt="${esc(l.title)}" src="${BASE}${esc(l.id)}/pin.jpg"><b>${esc(l.title)}</b><small>${l.items} pieces</small></a>`).join('') + '</div>'
+          : '<p class="empty">The first looks are on their way.</p>');
+      return;
+    }
+    if (!/^[\w-]+$/.test(id)) throw new Error('bad id');
+    const l = await json(`${BASE}${id}/look.json`);
+    document.title = `${l.title} · Gentleman's Aesthetic`;
+    main.innerHTML = `<a class="back" href="#">← All looks</a><div class="look"><img alt="${esc(l.title)}" src="${BASE}${id}/pin.jpg"><div><h1>${esc(l.title)}</h1><p class="sub">Shop every piece in this look.</p>` +
+      l.items.map((i) => { const u = safeUrl(i.url); return `<div class="item"><img loading="lazy" alt="" src="${BASE}${id}/${esc(i.image)}"><div><div class="brand">${esc(i.brand)}</div><div class="what">${esc(i.name)}</div>${i.price ? `<div class="price">${esc(i.price)}</div>` : ''}${u ? `<a class="shop" href="${esc(u)}" target="_blank" rel="noopener sponsored">Shop</a>` : ''}</div></div>`; }).join('') +
+      '<p class="note">Prices and stock can change. Some links are affiliate links.</p></div></div>';
+  } catch (e) {
+    main.innerHTML = '<p class="empty">This look could not be found. <a href="#">See all looks</a></p>';
+  }
+}
+addEventListener('hashchange', show);
+show();
+</script>
+</body>
+</html>

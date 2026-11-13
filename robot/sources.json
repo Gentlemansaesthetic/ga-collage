@@ -1,0 +1,21 @@
+{
+ "outfits_per_day": 10,
+ "new_items_per_run": 60,
+ "min_price": 150,
+ "exclude_words": [],
+ "shops": [
+  {"name": "Luca Faloni", "url": "https://lucafaloni.com", "type": "shopify", "currency": "GBP", "on": true},
+  {"name": "Drake's", "url": "https://www.drakes.com", "type": "shopify", "currency": "GBP", "on": true},
+  {"name": "The Armoury", "url": "https://www.thearmoury.com", "type": "shopify", "currency": "USD", "on": true},
+  {"name": "Colhay's", "url": "https://www.colhays.com", "type": "shopify", "currency": "GBP", "on": true},
+  {"name": "Private White V.C.", "url": "https://privatewhitevc.com", "type": "shopify", "currency": "GBP", "on": true},
+  {"name": "Sunspel", "url": "https://www.sunspel.com", "type": "shopify", "currency": "GBP", "on": true},
+  {"name": "Anglo-Italian", "url": "https://www.angloitalian.com", "type": "shopify", "currency": "GBP", "on": true},
+  {"name": "Common Projects", "url": "https://www.commonprojects.com", "type": "shopify", "currency": "USD", "on": true},
+  {"name": "Baudoin & Lange", "url": "https://baudoinlange.com", "type": "shopify", "currency": "GBP", "on": true},
+  {"name": "D.S. & Durga", "url": "https://www.dsanddurga.com", "type": "shopify", "currency": "USD", "on": true},
+  {"name": "Jacques Marie Mage", "url": "https://www.jacquesmariemage.com", "type": "shopify", "currency": "USD", "on": true},
+  {"name": "Garrett Leight", "url": "https://garrettleight.com", "type": "shopify", "currency": "USD", "on": true}
+ ],
+ "feeds": []
+}

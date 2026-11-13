@@ -1,0 +1,6 @@
+numpy
+pillow
+scipy
+requests
+onnxruntime
+opencv-python-headless<5

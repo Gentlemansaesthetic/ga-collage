@@ -5,7 +5,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const extra = process.env.EXTRA_ROOT || '';
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.jpg': 'image/jpeg', '.wasm': 'application/wasm', '.onnx': 'application/octet-stream', '.svg': 'image/svg+xml' };
+const dataRoot = process.env.DATA_ROOT || ''; // a local copy of the robot's data branch, served at /_d/
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.jpg': 'image/jpeg', '.wasm': 'application/wasm', '.onnx': 'application/octet-stream', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 let helper = null;
 http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://localhost');
@@ -21,6 +22,7 @@ http.createServer(async (req, res) => {
     if (p.endsWith('/')) p += 'index.html';
     let file = path.join(root, p);
     if (extra && p.startsWith('/_t/')) file = path.join(extra, p.slice(4));
+    if (dataRoot && p.startsWith('/_d/')) file = path.join(dataRoot, p.slice(4));
     const data = await readFile(file);
     res.writeHead(200, { 'content-type': types[path.extname(file)] || 'application/octet-stream', 'content-length': data.length, 'cache-control': 'no-store' });
     res.end(data);

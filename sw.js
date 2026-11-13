@@ -1,12 +1,12 @@
 // Makes the app open instantly and work without signal once it has been opened once.
-const SHELL = 'ga-shell-v1';
+const SHELL = 'ga-shell-v2';
 const HEAVY = 'ga-heavy-v1'; // cutout engine + model: big files that never change
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll([
     './', 'index.html', 'css/app.css', 'manifest.webmanifest',
-    'js/app.js', 'js/cutout.js', 'js/db.js', 'js/editor.js', 'js/github.js', 'js/layouts.js', 'js/seg-worker.js', 'js/touchup.js',
+    'js/app.js', 'js/cutout.js', 'js/db.js', 'js/editor.js', 'js/github.js', 'js/layouts.js', 'js/seg-worker.js', 'js/today.js', 'js/touchup.js',
     'assets/bg-brown.jpg', 'assets/bg-tan.jpg', 'assets/bg-espresso.jpg', 'assets/logo.png', 'assets/icon-180.png', 'assets/icon-192.png',
   ]).catch(() => {})));
 });

@@ -35,9 +35,9 @@ console.log('helper:', await p.locator('#helper-badge').textContent(), '|', awai
 await p.evaluate(() => { window.ga.state.settings.helperUrl = 'http://localhost:8080/helper'; });
 await p.fill('input[placeholder^="yourname/"]', 'https://github.com/me/ga-looks');
 await p.fill('input[type=password]', 'github_pat_x');
-await p.locator('.card:has-text("Website backup") .btn.primary').tap();
+await p.locator('.card:has-text("Connect GitHub") .btn.primary').tap();
 await p.waitForTimeout(500);
-console.log('github:', await p.locator('.card:has-text("Website backup") .note').last().textContent());
+console.log('github:', await p.locator('.card:has-text("Connect GitHub") .note').last().textContent());
 // copy helper code
 await p.locator('text=Copy helper code').tap(); await p.waitForTimeout(400);
 const code = await p.evaluate(() => navigator.clipboard.readText());
@@ -81,8 +81,8 @@ await p.locator('#tools .tool:has-text("Brands")').tap();
 await p.tap('#btn-export');
 await p.waitForSelector('.export-img'); await p.waitForTimeout(500); await shot('export');
 console.log('list:\n' + await p.locator('.list-text').textContent());
-await p.locator('#sheet-body button:has-text("Back up to GitHub")').tap();
-await p.waitForFunction(() => /Backed up|GitHub/.test(document.querySelector('#sheet-body .note:last-child').textContent) && document.querySelector('#busy').classList.contains('hidden'), null, { timeout: 20000 });
+await p.locator('#sheet-body button:has-text("Publish to Shop this look")').tap();
+await p.waitForFunction(() => /Published|GitHub/.test(document.querySelector('#sheet-body .note:last-child').textContent) && document.querySelector('#busy').classList.contains('hidden'), null, { timeout: 20000 });
 console.log('backup:', await p.locator('#sheet-body .note').last().textContent(), '| PUTs:', gh.filter((x) => x.startsWith('PUT')).map((x) => x.split('/contents/')[1]).join(', '));
 const png = await p.evaluate(async () => { const r = await fetch(document.querySelector('.export-img').src); return Array.from(new Uint8Array(await r.arrayBuffer())); });
 fs.writeFileSync(new URL('./shots/flow-pin.png', import.meta.url), Buffer.from(png));

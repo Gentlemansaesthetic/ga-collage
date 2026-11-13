@@ -1,0 +1,51 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.PLAYWRIGHT || 'playwright');
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+const p = await ctx.newPage();
+p.on('pageerror', (e) => console.log('[pageerror]', e.message));
+p.on('dialog', (d) => d.accept());
+const files = { 'robot/sources.json': JSON.stringify({ outfits_per_day: 10, shops: [{ name: 'Drake\'s', url: 'https://www.drakes.com', on: true }], feeds: [] }) };
+const calls = [];
+await ctx.route('https://api.github.com/**', async (route) => {
+  const req = route.request(); const u = new URL(req.url());
+  calls.push(req.method() + ' ' + u.pathname.replace('/repos/me/ga-collage', ''));
+  if (u.pathname === '/repos/me/ga-collage') return route.fulfill({ json: { default_branch: 'main', permissions: { push: true } } });
+  const m = u.pathname.match(/\/contents\/(.+)$/);
+  if (m && req.method() === 'GET') return files[m[1]] ? route.fulfill({ json: { sha: 'x', content: Buffer.from(files[m[1]]).toString('base64') } }) : route.fulfill({ status: 404, json: {} });
+  if (m && req.method() === 'PUT') { files[m[1]] = Buffer.from(JSON.parse(req.postData()).content, 'base64').toString(); return route.fulfill({ status: 201, json: {} }); }
+  if (u.pathname.endsWith('/dispatches')) return route.fulfill({ status: 204, body: '' });
+  return route.fulfill({ status: 404, json: {} });
+});
+await p.goto('http://localhost:8080/index.html');
+await p.waitForFunction(() => window.ga && window.ga.state.look);
+await p.evaluate(() => { Object.assign(window.ga.state.settings, { dataUrl: 'http://localhost:8080/_d/' }); });
+await p.tap('#tabs button[data-tab=settings]');
+await p.waitForTimeout(500);
+await p.fill('input[placeholder="yourname/ga-collage"]', 'me/ga-collage');
+await p.fill('input[placeholder^="github_pat"]', 'fake-token');
+await p.locator('.card:has-text("Connect GitHub") button:has-text("Save and test")').tap();
+await p.waitForTimeout(1200);
+console.log('shops shown:', await p.locator('.shop b').allTextContents());
+await p.fill('input[placeholder="https://shopname.com"]', 'lucafaloni.com');
+await p.locator('button:has-text("Add shop")').tap(); await p.waitForTimeout(800);
+await p.locator('.card:has-text("Daily outfits") select').selectOption('5'); await p.waitForTimeout(800);
+await p.locator('.shop:has-text("Drake") button:has-text("Pause")').tap(); await p.waitForTimeout(800);
+console.log('sources now:', files['robot/sources.json']);
+await p.locator('button:has-text("Make new outfits now")').tap(); await p.waitForTimeout(800);
+console.log('run msg:', await p.locator('.card:has-text("Daily outfits") > .note').last().textContent());
+// keep + skip -> feedback sync
+await p.tap('#tabs button[data-tab=today]'); await p.waitForSelector('.today-img[src]');
+await p.locator('.today-card').first().locator('button:has-text("Keep")').tap(); await p.waitForSelector('.today-card .kept');
+await p.locator('.today-card').nth(1).locator('button:has-text("Skip")').tap();
+await p.evaluate(async () => { const m = await import('/js/today.js'); await m.sync(); });
+const fb = JSON.parse(files['robot/feedback.json'] || '{}');
+console.log('feedback:', fb.kept?.length, fb.skipped?.length, fb.kept?.[0]?.items?.length);
+// pasted item -> robot pool
+await p.evaluate(async () => { const blob = await (await fetch('/_t/out/watch.isnet_fp16.png')).blob(); window.__p = window.ga.processPhoto(blob, { name: 'Tank Louis watch', brand: 'Cartier', url: 'https://cartier.com/x', price: '$9000' }); });
+await p.waitForFunction(() => document.querySelector('#sheet-title').textContent.startsWith('New item'));
+await p.tap('#sheet-right'); await p.evaluate(() => window.__p); await p.waitForTimeout(1500);
+console.log('manual:', files['pool/manual.json'], Object.keys(files).filter((k) => k.startsWith('pool/manual/')));
+console.log('calls:', calls.filter((c) => !c.startsWith('GET')).join(' | '));
+await b.close();

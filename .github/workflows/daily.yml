@@ -1,0 +1,68 @@
+# The nightly robot: finds products, cuts them out and makes the day's outfits.
+# Results go to the "data" branch (replaced each run, so the repository does not grow).
+name: Daily outfits
+
+on:
+  schedule:
+    - cron: '17 10 * * *'   # every day around 5 am US Eastern
+  workflow_dispatch:
+    inputs:
+      restyle:
+        description: 'Make a fresh set of outfits for today'
+        type: boolean
+        default: true
+  push:
+    branches: [main]
+    paths: ['robot/sources.json', 'pool/manual.json', 'robot/*.py']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: robot
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get the current product pool
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          git clone --depth 1 --branch data "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}" data || mkdir -p data
+          rm -rf data/.git
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: robot/requirements.txt
+
+      - run: pip install -r robot/requirements.txt
+
+      - name: Collect, cut out and style
+        env:
+          # Phase 2: affiliate feed addresses live in GitHub secrets, never in files.
+          FEED_1: ${{ secrets.FEED_1 }}
+          FEED_2: ${{ secrets.FEED_2 }}
+          FEED_3: ${{ secrets.FEED_3 }}
+          FEED_4: ${{ secrets.FEED_4 }}
+        run: |
+          KEEP=""
+          if [ "${{ github.event_name }}" = "push" ]; then KEEP="--keep-today"; fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.restyle }}" != "true" ]; then KEEP="--keep-today"; fi
+          python robot/run.py --data data $KEEP
+
+      - name: Publish to the data branch
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          cd data
+          git init -q -b data
+          git add -A
+          git -c user.name="GA robot" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "Outfits for $(date -u +%F)"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}" data

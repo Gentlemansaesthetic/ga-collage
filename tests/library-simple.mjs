@@ -10,6 +10,7 @@ p.on('pageerror', (e) => console.log('[pageerror]', e.message));
 p.on('dialog', (d) => d.accept());
 await p.goto('http://localhost:8080/index.html');
 await p.waitForFunction(() => window.ga && window.ga.state.look);
+await p.tap('#tabs button[data-tab=create]');
 // simple engine with a studio photo
 await p.evaluate(() => { window.ga.state.settings.engine = 'simple'; });
 for (const [f, name, brand] of [['jacket', 'Jacket', 'A'], ['pants', 'Trousers', 'B'], ['sneaker', 'Sneakers', 'C']]) {

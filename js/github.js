@@ -7,14 +7,14 @@ function headers(token) {
   return { authorization: 'Bearer ' + token, accept: 'application/vnd.github+json', 'x-github-api-version': '2022-11-28' };
 }
 
-async function blobToBase64(blob) {
+export async function blobToBase64(blob) {
   const buf = new Uint8Array(await blob.arrayBuffer());
   let s = '';
   for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
   return btoa(s);
 }
 
-const textToBase64 = (t) => blobToBase64(new Blob([t]));
+export const textToBase64 = (t) => blobToBase64(new Blob([t]));
 
 async function getFile(cfg, path) {
   const r = await fetch(`${API}/repos/${cfg.repo}/contents/${path}?ref=${encodeURIComponent(cfg.branch || 'main')}&t=${Date.now()}`, { headers: headers(cfg.token) });
@@ -31,7 +31,7 @@ async function explain(r) {
   return 'GitHub error ' + r.status + (m ? ': ' + m : '');
 }
 
-async function putFile(cfg, path, base64, message) {
+export async function putFile(cfg, path, base64, message) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const old = await getFile(cfg, path);
     const r = await fetch(`${API}/repos/${cfg.repo}/contents/${path}`, {
@@ -78,4 +78,27 @@ export async function uploadLook(cfg, data, pin, itemImages, onStep) {
   index.unshift({ id: data.id, title: data.title, updatedAt: data.updatedAt, image: `${dir}/pin.jpg`, data: `${dir}/look.json`, items: data.items.length });
   await putFile(cfg, 'looks/index.json', await textToBase64(JSON.stringify(index, null, 2) + '\n'), msg);
   step('Index');
+}
+
+// Reads a JSON file from the repository (null if it does not exist yet).
+export async function readJson(cfg, path) {
+  const f = await getFile(cfg, path);
+  if (!f || !f.content) return null;
+  const bytes = Uint8Array.from(atob(f.content.replace(/\n/g, '')), (c) => c.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+export async function writeJson(cfg, path, data, message) {
+  await putFile(cfg, path, await textToBase64(JSON.stringify(data, null, 1) + '\n'), message);
+}
+
+// Starts the nightly robot right away (needs the token's "Actions" permission).
+export async function runWorkflow(cfg, file, inputs = {}) {
+  const r = await fetch(`${API}/repos/${cfg.repo}/actions/workflows/${file}/dispatches`, {
+    method: 'POST',
+    headers: { ...headers(cfg.token), 'content-type': 'application/json' },
+    body: JSON.stringify({ ref: cfg.branch || 'main', inputs }),
+  });
+  if (r.status === 403 || r.status === 404) throw new Error('The token may not start the robot. Give it the "Actions: Read and write" permission too.');
+  if (!r.ok) throw new Error(await explain(r));
 }

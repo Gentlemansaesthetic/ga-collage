@@ -5,6 +5,7 @@ import * as db from './db.js';
 import { makeCanvas, canvasToBlob, loadImage, toSourceCanvas, existingAlphaMask, autoMask, plainMask, fullMask, borderUniformity, composeCut, maskCoverage, preloadModel, tightenMask } from './cutout.js';
 import { openTouchup } from './touchup.js';
 import { testGithub, uploadLook } from './github.js';
+import { initToday, renderToday, robotSources, saveSources, robotStatus, runRobot, shareWithRobot, repoName } from './today.js';
 
 const MODEL = 'isnet_fp16';
 const BUILTIN_BG = [['brown', 'Brown'], ['tan', 'Tan'], ['espresso', 'Espresso']];
@@ -110,7 +111,7 @@ function menuSheet(title, entries) {
 }
 
 // ---------- state ----------
-const state = { look: null, settings: {}, assets: { bg: null, logo: null }, undo: [], customBgs: [], bgCache: new Map(), tab: 'create' };
+const state = { look: null, settings: {}, assets: { bg: null, logo: null }, undo: [], customBgs: [], bgCache: new Map(), tab: 'today' };
 const editor = new Editor($('#pin'), {
   onSelect: () => renderTools(),
   onBefore: () => pushUndo(),
@@ -388,6 +389,7 @@ function detailsSheet(it, isNew, count = '') {
       if (isNew) {
         pushUndo();
         l.items.push(it);
+        shareWithRobot(it).catch((e) => console.warn('robot pool', e));
         if (l.items.every((i) => i === it || !i.manual)) applyLayout(l.items, l.template); else placeLoose(it, l.items);
       } else if (typeChanged && l.items.every((i) => !i.manual)) applyLayout(l.items, l.template);
       finish(true);
@@ -600,6 +602,13 @@ async function shareFiles(files, text) {
   }
   return true;
 }
+// Address of the look's "Shop this look" page (served by GitHub Pages from the same repository).
+function lookLink(look) {
+  const repo = state.settings.ghRepo || '';
+  const [owner, name] = repo.split('/');
+  const base = location.hostname.endsWith('.github.io') ? location.origin + '/' + location.pathname.split('/')[1] : `https://${(owner || '').toLowerCase()}.github.io/${name || ''}`;
+  return `${base}/site/#${look.id}`;
+}
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch (e) { return false; }
 }
@@ -622,7 +631,7 @@ async function exportSheet() {
   const text = listText(look);
   const missing = look.items.filter((i) => !i.url).length;
   const gh = state.settings.ghRepo && state.settings.ghToken;
-  const ghMsg = h('p', { class: 'note' }, gh ? (look.syncedAt ? 'Last backed up ' + fmtDate(look.syncedAt) + '.' : 'Not backed up yet.') : 'Tip: connect GitHub in Settings to keep a copy of every look for your future website.');
+  const ghMsg = h('p', { class: 'note' }, gh ? (look.syncedAt ? 'Published ' + fmtDate(look.syncedAt) + '. Link for the pin: ' + lookLink(look) : 'Puts this look on your "Shop this look" page and copies its link for Pinterest.') : 'Tip: connect GitHub in Settings to put looks on your "Shop this look" page.');
   const ghBtn = gh && h('button', { class: 'btn', onclick: async () => {
     const d = busy('Backing up…');
     try {
@@ -640,12 +649,13 @@ async function exportSheet() {
       look.syncedAt = Date.now();
       await saveNow();
       ghMsg.className = 'note ok';
-      ghMsg.textContent = 'Backed up to GitHub.';
+      ghMsg.textContent = 'Published. Link for the pin: ' + lookLink(look);
+      if (await copyText(lookLink(look))) toast('Pin link copied');
     } catch (e) {
       ghMsg.className = 'note warn';
       ghMsg.textContent = e.message || String(e);
     } finally { d(); }
-  } }, 'Back up to GitHub');
+  } }, 'Publish to Shop this look');
   openSheet({
     title: 'Export',
     onClose: () => URL.revokeObjectURL(url),
@@ -723,6 +733,73 @@ function helperCode() { return workerCode.replace("'__KEY__'", `'${state.setting
 async function saveSettings() { await db.kvSet('settings', state.settings); }
 const cleanUrl = (v) => { v = v.trim().replace(/\/+$/, ''); if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v; return v; };
 
+// "Daily outfits" settings: the shops the robot visits, how many outfits, run it now.
+function dailyCard() {
+  const s = state.settings;
+  const connected = !!(s.ghRepo && s.ghToken && s.ghOk);
+  const list = h('div', { class: 'shop-list' }, h('p', { class: 'note' }, 'Loading…'));
+  const msg = h('p', { class: 'note' });
+  const perDay = h('select', {}, [3, 5, 10, 15, 20].map((n) => h('option', { value: n }, n + ' a day')));
+  const addIn = h('input', { placeholder: 'https://shopname.com', type: 'url', inputMode: 'url', autocapitalize: 'off', autocomplete: 'off' });
+  let src = null;
+  const lastRun = h('p', { class: 'note' });
+  const save = async (text) => {
+    msg.className = 'note'; msg.textContent = 'Saving…';
+    try { await saveSources(src); msg.className = 'note ok'; msg.textContent = text || 'Saved. The robot uses it from its next run.'; }
+    catch (e) { msg.className = 'note warn'; msg.textContent = e.message || String(e); }
+  };
+  const draw = (st) => {
+    const by = new Map(((st && st.sources) || []).map((x) => [x.name, x]));
+    list.replaceChildren(...src.shops.map((shop) => {
+      const r = by.get(shop.name);
+      const info = !shop.on ? 'Paused' : !r ? 'Not visited yet' : r.ok ? `${r.usable} pieces found${r.new ? `, ${r.new} new last run` : ''}` : r.error;
+      return h('div', { class: 'shop' + (r && !r.ok && shop.on ? ' bad' : '') },
+        h('div', { class: 'grow' }, h('b', {}, shop.name), h('small', {}, info)),
+        connected ? h('button', { class: 'link', onclick: async () => { shop.on = !shop.on; draw(st); await save(); } }, shop.on ? 'Pause' : 'Resume') : null,
+        connected ? h('button', { class: 'link danger', onclick: async () => { if (!confirm(`Stop visiting ${shop.name}?`)) return; src.shops = src.shops.filter((x) => x !== shop); draw(st); await save(); } }, 'Remove') : null);
+    }));
+    perDay.value = String(src.outfits_per_day || 10);
+  };
+  (async () => {
+    const [{ data }, st] = await Promise.all([robotSources(), robotStatus()]);
+    if (!data) { list.replaceChildren(h('p', { class: 'note warn' }, 'Could not load the shop list. Check your signal.')); return; }
+    src = data;
+    draw(st);
+    if (st) {
+      const total = Object.values(st.pool || {}).reduce((a, b) => a + b, 0);
+      lastRun.textContent = `Last run ${fmtDate(st.ran_at * 1000)}: ${st.outfits} outfits from ${total} pieces.` + (st.notes && st.notes.length ? ' ' + st.notes.join(' ') : '');
+    } else lastRun.textContent = 'The robot has not run yet.';
+  })();
+  perDay.onchange = async () => { if (!src) return; src.outfits_per_day = +perDay.value; await save('Saved. Tomorrow brings ' + perDay.value + ' outfits.'); };
+  return h('div', { class: 'card stack' },
+    h('h3', {}, 'Daily outfits'),
+    h('p', { class: 'note' }, 'Every morning a free robot on GitHub visits these shops, cuts out new pieces and puts together outfits for the Today tab.'),
+    lastRun,
+    h('label', { class: 'field' }, h('span', {}, 'How many outfits'), perDay),
+    h('div', { class: 'or' }, 'Shops the robot visits'),
+    list,
+    connected ? h('div', { class: 'stack' },
+      h('label', { class: 'field' }, h('span', {}, 'Add a shop (its web address)'), addIn),
+      h('button', { class: 'btn', onclick: async () => {
+        const url = cleanUrl(addIn.value);
+        if (!src || !/^https:\/\/[^/]+\.[^/]+/.test(url)) return toast('Paste the shop’s web address');
+        const host = new URL(url).hostname.replace(/^www\./, '');
+        const name = host.split('.')[0].replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+        if (src.shops.some((x) => x.url.replace(/^https?:\/\/(www\.)?/, '') === url.replace(/^https?:\/\/(www\.)?/, ''))) return toast('Already on the list');
+        src.shops.push({ name, url: new URL(url).origin, type: 'shopify', currency: 'USD', on: true });
+        addIn.value = '';
+        draw(null);
+        await save('Added. The robot checks it in a few minutes and shows here whether it works.');
+      } }, 'Add shop'),
+      h('button', { class: 'btn primary', onclick: async () => {
+        msg.className = 'note'; msg.textContent = 'Starting…';
+        try { await runRobot(); msg.className = 'note ok'; msg.textContent = 'Started. New outfits arrive in Today in about 10 to 30 minutes.'; }
+        catch (e) { msg.className = 'note warn'; msg.textContent = e.message || String(e); }
+      } }, 'Make new outfits now'))
+      : h('p', { class: 'note' }, 'To change the list or run the robot now, connect GitHub below.'),
+    msg);
+}
+
 function renderSettings() {
   const s = state.settings;
   const box = $('#settings');
@@ -733,6 +810,8 @@ function renderSettings() {
       h('ol', { html: '<li>Open this page in <b>Safari</b>.</li><li>Tap the <b>Share</b> button.</li><li>Choose <b>Add to Home Screen</b>.</li>' }),
       h('p', { class: 'note' }, 'It then opens full screen like any other app, and your looks stay saved on this phone.')));
   }
+
+  cards.push(dailyCard());
 
   // Link helper
   const hUrl = h('input', { value: s.helperUrl || '', placeholder: 'https://ga-helper.yourname.workers.dev', type: 'url', inputMode: 'url', autocapitalize: 'off', autocomplete: 'off' });
@@ -759,8 +838,8 @@ function renderSettings() {
     $('#helper-badge').textContent = s.helperOk ? 'Connected' : 'Not set up';
   };
   cards.push(h('div', { class: 'card stack' },
-    h('h3', {}, 'Link helper', h('em', { id: 'helper-badge', class: s.helperOk ? 'ok' : '' }, s.helperOk ? 'Connected' : 'Not set up')),
-    h('p', { class: 'note' }, 'Lets you paste a product link and choose from the photos on that page. It is a tiny free program that runs on your own Cloudflare account. One-time setup:'),
+    h('h3', {}, 'Link helper', h('em', { id: 'helper-badge', class: s.helperOk ? 'ok' : '' }, s.helperOk ? 'Connected' : 'Optional')),
+    h('p', { class: 'note' }, 'Only needed for adding pieces by hand: paste a product link and choose from the photos on that page. It is a tiny free program that runs on your own Cloudflare account. One-time setup:'),
     h('ol', { html: '<li>Create a free account at <b>dash.cloudflare.com</b> (no card needed).</li><li>Go to <b>Workers &amp; Pages</b>, then <b>Create</b>, then <b>Start with Hello World</b>. Name it <b>ga-helper</b> and tap <b>Deploy</b>.</li><li>Tap <b>Edit code</b>, delete everything in the editor, and paste the helper code from the button below. Tap <b>Deploy</b>.</li><li>Copy the address shown (it ends in <b>workers.dev</b>) and paste it here.</li>' }),
     h('button', { class: 'btn', onclick: async () => {
       if (!workerCode) { try { workerCode = await (await fetch('worker/worker.js')).text(); } catch (e) {} }
@@ -775,14 +854,14 @@ function renderSettings() {
     h('button', { class: 'btn primary', onclick: testHelper }, 'Save and test'),
     hMsg));
 
-  // GitHub backup
-  const gRepo = h('input', { value: s.ghRepo || '', placeholder: 'yourname/ga-looks', autocapitalize: 'off', autocomplete: 'off' });
+  // GitHub connection
+  const gRepo = h('input', { value: s.ghRepo || repoName(), placeholder: 'yourname/ga-collage', autocapitalize: 'off', autocomplete: 'off' });
   const gTok = h('input', { value: s.ghToken || '', placeholder: 'github_pat_…', type: 'password', autocapitalize: 'off', autocomplete: 'off' });
   const gMsg = h('p', { class: 'note' });
   cards.push(h('div', { class: 'card stack' },
-    h('h3', {}, 'Website backup', h('em', { class: s.ghOk ? 'ok' : '' }, s.ghOk ? 'Connected' : 'Optional')),
-    h('p', { class: 'note' }, 'Keeps a copy of every exported look (the pin, each cutout and the item list) in a GitHub folder you own. Your future "Shop this look" pages can be built straight from it. Without this, looks live only on this phone.'),
-    h('ol', { html: '<li>On github.com create a new repository, for example <b>ga-looks</b>.</li><li>Go to Settings, Developer settings, <b>Fine-grained tokens</b>, Generate new token.</li><li>Under Repository access pick <b>only that repository</b>. Under Permissions set <b>Contents</b> to <b>Read and write</b>.</li><li>Paste the repository name and the token here.</li>' }),
+    h('h3', {}, 'Connect GitHub', h('em', { class: s.ghOk ? 'ok' : '' }, s.ghOk ? 'Connected' : 'Not set up')),
+    h('p', { class: 'note' }, 'Lets the app tell the robot which outfits you kept or skipped (so it learns your taste), change the shop list, reuse items you add by hand, and keep a copy of every exported look for your future "Shop this look" website.'),
+    h('ol', { html: '<li>On github.com tap your picture, then <b>Settings</b>, <b>Developer settings</b>, <b>Personal access tokens</b>, <b>Fine-grained tokens</b>, <b>Generate new token</b>.</li><li>Name it <b>GA app</b>. Expiration: <b>No expiration</b> (or a year).</li><li>Repository access: <b>Only select repositories</b> → <b>ga-collage</b>.</li><li>Permissions → Repository permissions: <b>Contents</b>: Read and write, and <b>Actions</b>: Read and write.</li><li>Tap <b>Generate token</b>, copy it, and paste it here.</li>' }),
     h('label', { class: 'field' }, h('span', {}, 'Repository'), gRepo),
     h('label', { class: 'field' }, h('span', {}, 'Token (stays on this phone)'), gTok),
     h('button', { class: 'btn primary', onclick: async () => {
@@ -795,10 +874,11 @@ function renderSettings() {
         try {
           s.ghBranch = await testGithub({ repo: s.ghRepo, token: s.ghToken });
           s.ghOk = true;
-          gMsg.className = 'note ok'; gMsg.textContent = 'Connected. Use "Back up to GitHub" on the Export screen.';
+          gMsg.className = 'note ok'; gMsg.textContent = 'Connected.';
         } catch (e) { gMsg.className = 'note warn'; gMsg.textContent = e.message || String(e); }
-      } else { gMsg.textContent = 'Backup is off.'; }
+      } else { gMsg.textContent = 'Not connected.'; }
       await saveSettings();
+      if (s.ghOk) renderSettings();
     } }, 'Save and test'),
     gMsg));
 
@@ -842,11 +922,12 @@ function renderSettings() {
 // ---------- tabs + start ----------
 function showTab(name) {
   state.tab = name;
-  for (const v of ['create', 'library', 'settings']) $('#view-' + v).classList.toggle('hidden', v !== name);
+  for (const v of ['today', 'create', 'library', 'settings']) $('#view-' + v).classList.toggle('hidden', v !== name);
   document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
   if (name === 'library') { saveNow().then(renderLibrary); }
   if (name === 'settings') renderSettings();
   if (name === 'create') editor.draw();
+  if (name === 'today') renderToday();
 }
 document.querySelectorAll('#tabs button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
 $('#btn-export').addEventListener('click', exportSheet);
@@ -887,7 +968,9 @@ async function start() {
         h('button', { class: 'btn', onclick: dismissSheet }, 'Keep Smart and try again')) });
     }
   }
+  showTab('today');
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
-window.ga = { state, editor, processPhoto, saveNow, setLook, blankLook, showTab };
+initToday({ state, db, h, toast, busy, openSheet, dismissSheet, setLook, saveNow, blankLook, newId, money, bgImage, openLook, exportSheet });
+window.ga = { state, editor, processPhoto, saveNow, setLook, blankLook, showTab, renderToday };
 start().catch((e) => { console.error(e); toast('Something went wrong while starting: ' + (e.message || e), 8000); });
