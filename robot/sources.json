@@ -74,7 +74,8 @@
    "url": "https://www.dsanddurga.com",
    "type": "shopify",
    "currency": "USD",
-   "on": true
+   "on": true,
+   "category": "fragrance"
   },
   {
    "name": "Jacques Marie Mage",
@@ -82,7 +83,8 @@
    "type": "shopify",
    "currency": "USD",
    "on": true,
-   "brand": "Jacques Marie Mage"
+   "brand": "Jacques Marie Mage",
+   "category": "eyewear"
   },
   {
    "name": "Garrett Leight",
@@ -90,7 +92,8 @@
    "type": "shopify",
    "currency": "USD",
    "on": true,
-   "brand": "Garrett Leight"
+   "brand": "Garrett Leight",
+   "category": "eyewear"
   }
  ],
  "feeds": []

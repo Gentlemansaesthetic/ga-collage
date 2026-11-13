@@ -18,6 +18,17 @@ DEFAULT_EXCLUDE = ['women', 'womens', "women's", 'woman', 'ladies', 'girls', 'bo
                    'mug', 'book', 'poster', 'print', 'blanket', 'pillow', 'cushion', 'notebook', 'pen', 'lens', 'case only', 'replacement']
 
 
+def category_for(title, ptype, shop, tags=''):
+    """The shop's own product type is more reliable than the name ("Grey Blazer" can be a perfume)."""
+    if shop.get('category'):
+        return shop['category']
+    for text in (ptype, title, tags):
+        cat = guess_category(text)
+        if cat != 'other':
+            return cat
+    return 'other'
+
+
 def clean_brand(vendor, shop):
     """Shops often put their own name in odd forms ("Drakes - UK/ROW", "PrivateWhite V.C"). Use the shop's name then."""
     if shop.get('brand'):
@@ -87,9 +98,7 @@ def shopify(shop, cfg):
             price = min((_price(v.get('price')) or 0) for v in avail)
             if price < min_price:
                 continue
-            cat = guess_category(p.get('title', ''), p.get('product_type', ''))
-            if cat == 'other':
-                cat = guess_category(' '.join(tags))
+            cat = category_for(p.get('title', ''), p.get('product_type', ''), shop, ' '.join(tags))
             if cat == 'other':
                 continue
             images = [i.get('src') for i in (p.get('images') or []) if i.get('src')]
@@ -103,6 +112,7 @@ def shopify(shop, cfg):
                 'name': p.get('title', '').strip(),
                 'brand': clean_brand(p.get('vendor'), shop),
                 'category': cat,
+                'ptype': p.get('product_type', ''),
                 'price': _fmt_price(price),
                 'currency': shop.get('currency', 'USD'),
                 'url': url,

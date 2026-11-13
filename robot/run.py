@@ -13,7 +13,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from common import ACCESSORY, ROOT, guess_category, load_json, log, now, save_json  # noqa: E402
+from common import ACCESSORY, ROOT, load_json, log, now, save_json  # noqa: E402
 import collect  # noqa: E402
 import cutout  # noqa: E402
 import stylist  # noqa: E402
@@ -69,7 +69,8 @@ def main():
             listed.add(p['id'])
             if p['id'] in catalog:
                 c = catalog[p['id']]
-                c.update({k: p[k] for k in ('name', 'brand', 'category', 'price', 'currency', 'url', 'buy_url')})
+                c.update({k: p[k] for k in ('name', 'brand', 'category', 'price', 'currency', 'url', 'buy_url') if k in p})
+                c['ptype'] = p.get('ptype', '')
                 c['seen'] = t
                 c.pop('gone', None)
             else:
@@ -80,13 +81,14 @@ def main():
 
     # rules may have changed since an item was added: re-check names
     exclude = collect.DEFAULT_EXCLUDE + cfg.get('exclude_words', [])
+    shops = {x['name']: x for x in cfg.get('shops', []) + cfg.get('feeds', [])}
     for c in catalog.values():
         if c.get('manual'):
             continue
         if collect.excluded(c['name'], exclude):
             c['gone'] = 0
             continue
-        cat = guess_category(c['name'])
+        cat = collect.category_for(c['name'], c.get('ptype', ''), shops.get(c.get('source'), {}))
         if cat != 'other':
             c['category'] = cat
 
@@ -121,6 +123,7 @@ def main():
             status['notes'].append('Stopped early to stay within the time limit; the rest follows tomorrow.')
             break
         reason = 'no usable photo'
+        best = None
         for img_url in p['images']:
             try:
                 im, info = cutout.cut(collect.download(img_url), model, p['category'])
@@ -129,13 +132,19 @@ def main():
             if im is None:
                 reason = info
                 continue
+            fit = shape_fit(p['category'], im.width, im.height)
+            if best is None or fit > best[0]:
+                best = (fit, im, info, img_url)
+            if fit >= 1:
+                break  # good enough: the usual shape for this kind of product
+        if best:
+            _, im, info, img_url = best
             rel, w, h = save_cut(im, data, p['id'])
             item = {k: p[k] for k in ('id', 'source', 'name', 'brand', 'category', 'price', 'currency', 'url', 'buy_url')}
-            item.update({'img': rel, 'w': w, 'h': h, 'colour': info['colour'], 'cut': info['method'], 'photo': img_url, 'added': t, 'seen': t})
+            item.update({'ptype': p.get('ptype', ''), 'img': rel, 'w': w, 'h': h, 'colour': info['colour'], 'cut': info['method'], 'photo': img_url, 'added': t, 'seen': t})
             catalog[p['id']] = item
             src_stat[p['source']]['new'] += 1
             log('added', p['category'], '|', p['brand'], '|', p['name'], '|', info['colour']['name'])
-            break
         else:
             rejects[p['id']] = {'reason': reason, 'at': t, 'name': p['name']}
             src_stat[p['source']]['rejected'] += 1
@@ -226,6 +235,18 @@ def main():
     save_json(os.path.join(data, 'daily', 'history.json'), history)
     save_json(os.path.join(data, 'daily', 'status.json'), status)
     log(f"done in {status['seconds']}s: {len(outfits)} outfits, pool {pool_counts}")
+
+
+def shape_fit(category, w, h):
+    """1 when the cut-out has the usual flat-lay shape for its kind (trousers laid out long, shoes side-on), lower otherwise."""
+    r = h / max(1, w)
+    want = {'pants': (1.9, 4.5), 'shoes': (0.25, 0.8), 'outer': (0.8, 1.9), 'top': (0.7, 1.5), 'base': (0.7, 1.4)}.get(category)
+    if not want:
+        return 1
+    lo, hi = want
+    if lo <= r <= hi:
+        return 1
+    return max(0.0, 1 - (lo - r if r < lo else r - hi) / lo)
 
 
 def count_pool(items):
