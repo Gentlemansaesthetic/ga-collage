@@ -34,7 +34,9 @@ Last updated: 2026-11-13. State: **app is on GitHub (`Gentlemansaesthetic/ga-col
 - Phase 3 (ideas): "Today's picks are ready" phone notification, smarter taste learning, scheduling pins straight to Pinterest.
 
 **Honest limits**
-- The starting shop list in `robot/sources.json` (Luca Faloni, Drake's, The Armoury, Colhay's, Private White V.C., Sunspel, Anglo-Italian, Common Projects, Baudoin & Lange, D.S. & Durga, Jacques Marie Mage, Garrett Leight) is **Claude's guess** of luxury-leaning shops that run on Shopify. Shop sites were blocked from the build sandbox, so **none were checked**. The first real run shows which work (Settings → Daily outfits). Currencies are guesses too.
+- **First real run on GitHub (2026-11-13): worked.** 288 s, 10 outfits. Shops that work: Drake's (881 usable products), Sunspel (452), Anglo-Italian (228), Garrett Leight (155), Baudoin & Lange (117), Private White V.C. (81), Colhay's (63), Jacques Marie Mage (63), D.S. & Durga (24). **Not working:** Luca Faloni ("blocks automatic visits"), The Armoury (no product list – not Shopify or wrong address), Common Projects ("could not reach"). Consider removing those three or finding the right address. Currencies in `sources.json` are still guesses.
+- Real cutouts looked clean. Problems seen in the first real outfits, fixed the same day: "Watch Coat"/"Watch Cap"/"Watch Case" taken for watches; lounge sets and spurs; messy brand names ("Drakes - UK/ROW", "PrivateWhite V.C", "GLCO") → `clean_brand()` + `brand` per shop; too many casual pieces → `CASUAL_WORDS` penalty in `stylist.py` and a longer `DEFAULT_EXCLUDE` list in `collect.py`.
+- **No real watches** in the pool: none of these shops sell them. Until Phase 2 the owner should add a few watches by hand (they are reused).
 - True-luxury brands' own sites don't offer open product lists; they arrive with Phase 2.
 - Styling is rules, not a paid AI.
 
@@ -183,8 +185,6 @@ Testing was done in headless Chromium at iPhone size (390 × 844, touch), on a L
 - Earlier tests (full flow, library, link helper) still pass after the changes.
 
 ### Daily Picks – NOT tested yet
-- **The workflow on real GitHub Actions** (it should start automatically after the push that added it – check the Actions tab).
-- **Any real shop.** The starting list is unverified.
 - Real cutout quality on real shop photos (model shots, ghost mannequins, odd crops). Face detection catches faces only; cropped on-body shots without a face may slip through (they are often cut off at the photo edge, which is rejected).
 - The website on GitHub Pages; raw.githubusercontent.com reading from the iPhone.
 - Whether GitHub keeps the daily schedule running: GitHub pauses scheduled workflows in repos with no activity for 60 days. The app's feedback writes count as activity; if the owner stops using the app, the robot may pause (re-enable from the Actions tab).
@@ -209,9 +209,9 @@ Testing was done in headless Chromium at iPhone size (390 × 844, touch), on a L
 
 Done: GitHub account `Gentlemansaesthetic`, public repo `ga-collage`, Claude GitHub app installed, code pushed to `main`.
 
-### A. Owner, in a browser (not done as far as we know)
-1. **Pages:** https://github.com/Gentlemansaesthetic/ga-collage/settings/pages → Deploy from a branch → `main` / root → Save. App: `https://gentlemansaesthetic.github.io/ga-collage/`. Website: `…/ga-collage/site/`. Claude cannot do this – the API path is blocked for it.
-2. **Actions:** check the **Actions** tab. Workflows usually run on public repos without setup; if GitHub asks to enable them, tap the button. Claude cannot read Actions from its sandbox either.
+### A. Owner
+1. **Pages: done** (the owner switched it on; GitHub's "pages build and deployment" runs succeed). App: `https://gentlemansaesthetic.github.io/ga-collage/`. Website: `…/ga-collage/site/`.
+2. **Actions: working** (the robot ran successfully on 2026-11-13). Claude can read run status with `gh api repos/Gentlemansaesthetic/ga-collage/actions/runs`, and the results by cloning the `data` branch.
 3. **iPhone:** open the app address in Safari → Share → Add to Home Screen.
 4. **GitHub token for the app** (Settings → Connect GitHub; steps are in the app): fine-grained token, only the `ga-collage` repository, **Contents: Read and write** and **Actions: Read and write**. Paste in the app. Needed for: learning from keep/skip, editing the shop list, Make new outfits now, reusing hand-added items, Publish to Shop this look.
 
