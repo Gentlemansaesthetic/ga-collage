@@ -1,0 +1,109 @@
+{
+ "ran_at": 1795864079,
+ "date": "2026-11-28",
+ "sources": [
+  {
+   "name": "Luca Faloni",
+   "ok": false,
+   "error": "This shop blocks automatic visits."
+  },
+  {
+   "name": "Drake's",
+   "ok": true,
+   "products": 1500,
+   "usable": 764,
+   "new": 14,
+   "rejected": 0
+  },
+  {
+   "name": "The Armoury",
+   "ok": false,
+   "error": "No product list found here. It may not be a Shopify shop, or the address is wrong."
+  },
+  {
+   "name": "Colhay's",
+   "ok": true,
+   "products": 79,
+   "usable": 62,
+   "new": 3,
+   "rejected": 0
+  },
+  {
+   "name": "Private White V.C.",
+   "ok": true,
+   "products": 279,
+   "usable": 70,
+   "new": 5,
+   "rejected": 1
+  },
+  {
+   "name": "Sunspel",
+   "ok": true,
+   "products": 1500,
+   "usable": 273,
+   "new": 13,
+   "rejected": 0
+  },
+  {
+   "name": "Anglo-Italian",
+   "ok": true,
+   "products": 308,
+   "usable": 242,
+   "new": 17,
+   "rejected": 0
+  },
+  {
+   "name": "Common Projects",
+   "ok": false,
+   "error": "Could not reach this shop."
+  },
+  {
+   "name": "Baudoin & Lange",
+   "ok": true,
+   "products": 249,
+   "usable": 117,
+   "new": 3,
+   "rejected": 0
+  },
+  {
+   "name": "D.S. & Durga",
+   "ok": true,
+   "products": 103,
+   "usable": 19,
+   "new": 1,
+   "rejected": 0
+  },
+  {
+   "name": "Jacques Marie Mage",
+   "ok": true,
+   "products": 554,
+   "usable": 99,
+   "new": 1,
+   "rejected": 0
+  },
+  {
+   "name": "Garrett Leight",
+   "ok": true,
+   "products": 207,
+   "usable": 129,
+   "new": 2,
+   "rejected": 0
+  }
+ ],
+ "notes": [
+  "No watches yet: the shops on the list do not sell them. Add a few by hand in the app (paste a link); they are reused in many outfits."
+ ],
+ "pool": {
+  "top": 87,
+  "shoes": 70,
+  "base": 5,
+  "eyewear": 20,
+  "outer": 57,
+  "fragrance": 19,
+  "pants": 80,
+  "small": 40
+ },
+ "outfits": 10,
+ "missing": [],
+ "seconds": 480
+}
